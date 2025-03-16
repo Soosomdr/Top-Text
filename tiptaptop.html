@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a1a, #3a1a50);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: #f6ffff;
+            padding: 20px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #6a0dad, #4b0082);
+            color: white;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 3px solid #f6ffff;
+        }
+        .cell:hover {
+            background: #f6ffff;
+            color: #6a0dad;
+        }
+        .hidden {
+            display: none;
+        }
+        #restartBtn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #6a0dad;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none;
+            margin-top: 20px;
+        }
+        #restartBtn:hover {
+            background-color: #4b0082;
+        }
+        #difficulty-container {
+            margin-bottom: 20px;
+        }
+        #difficulty {
+            padding: 10px;
+            font-size: 1.2em;
+            background-color: #6a0dad;
+            color: white;
+            border: 3px solid #f6ffff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #difficulty option {
+            background-color: #6a0dad;
+            color: white;
+        }
+        #difficulty:hover {
+            background-color: #4b0082;
+        }
+        #startGameBtn {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #6a0dad;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #startGameBtn:hover {
+            background-color: #4b0082;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe</h1>
+    <div id="difficulty-container">
+        <label for="difficulty" style="font-size: 1.5em;">Choose difficulty:</label>
+        <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="hard">Hard</option>
+        </select>
+    </div>
+    <button id="startGameBtn" onclick="startGame()">Start Game</button>
+
+    <div class="board" id="board" style="display: none;">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <h2 id="status"></h2>
+    <audio id="errorSound" class="hidden" src="https://www.myinstants.com/media/sounds/windows-xp-error-sound.mp3"></audio>
+    <button id="restartBtn" onclick="restartGame()">Restart</button>
+
+    <script>
+        const board = document.getElementById("board");
+        const cells = document.querySelectorAll(".cell");
+        const statusText = document.getElementById("status");
+        const errorSound = document.getElementById("errorSound");
+        const restartBtn = document.getElementById("restartBtn");
+        const startGameBtn = document.getElementById("startGameBtn");
+        const difficultySelect = document.getElementById("difficulty");
+        let boardState = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let gameActive = false;
+        let difficulty = "easy";
+        let userMoves = 0;
+
+        difficultySelect.addEventListener("change", function() {
+            difficulty = difficultySelect.value;
+        });
+
+        function startGame() {
+            gameActive = true;
+            board.style.display = "grid";
+            startGameBtn.style.display = "none";
+            statusText.innerText = "Your turn!";
+            restartBtn.style.display = "block";
+            userMoves = 0;
+            boardState = ["", "", "", "", "", "", "", "", ""];
+            cells.forEach(cell => cell.innerText = "");
+        }
+
+        function checkWinner() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+                    gameActive = false;
+                    statusText.innerText = `${boardState[a]} won!`;
+                    restartBtn.style.display = "block";
+                    return;
+                }
+            }
+            if (!boardState.includes("")) {
+                gameActive = false;
+                statusText.innerText = "It's a tie!";
+                restartBtn.style.display = "block";
+            }
+        }
+
+        function blockWinningMove(player) {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                const playerMoves = [a, b, c].filter(i => boardState[i] === player);
+                const emptyCells = [a, b, c].filter(i => boardState[i] === "");
+
+                if (playerMoves.length === 2 && emptyCells.length === 1) {
+                    return emptyCells[0];
+                }
+            }
+            return null;
+        }
+
+        function botPlay() {
+            if (!gameActive) return;
+
+            let move = blockWinningMove("X");
+            if (move === null) {
+                let emptyCells = boardState.map((cell, i) => cell === "" ? i : null).filter(i => i !== null);
+                move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            }
+
+            boardState[move] = 'O';
+            cells[move].innerText = "O";
+            checkWinner();
+        }
+
+        function handleCellClick(event) {
+            const index = event.target.dataset.index;
+            if (boardState[index] === "" && gameActive && userMoves < 3) {
+                boardState[index] = "X";
+                event.target.innerText = "X";
+                userMoves++;
+                checkWinner();
+                if (gameActive && userMoves < 3) {
+                    setTimeout(botPlay, 500);
+                }
+            } else if (userMoves >= 3) {
+                errorSound.play();
+                return;
+            }
+        }
+
+        function restartGame() {
+            boardState = ["", "", "", "", "", "", "", "", ""];
+            gameActive = true;
+            currentPlayer = "X";
+            userMoves = 0;
+            statusText.innerText = "Your turn!";
+            cells.forEach(cell => cell.innerText = "");
+            restartBtn.style.display = "block";
+        }
+
+        cells.forEach(cell => cell.addEventListener("click", handleCellClick));
+    </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synonym Changer & Escaping Button</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Bienvenue, <span id="playerName"></span> !</h2>
+        <h3>Synonym Changer</h3>
+        <input type="text" id="textInput" placeholder="Entrez le mot...">
+        <div class="button-container">
+            <button id="replaceButton">Remplacer</button>
+        </div>
+    </div>
+
+    <div class="image-container" id="imageContainer" style="display: none;">
+        <img id="displayImage" src="" alt="Image à afficher" />
+    </div>
+
+    <audio id="laughSound" src="images/nononono-cat-mp3cut.mp3"></audio>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let playerName = prompt("Entrez votre prénom :");
+            document.getElementById("playerName").textContent = playerName || "Joueur";
+        });
+
+        async function getSynonym(word) {
+            try {
+                const response = await fetch(`https://api.datamuse.com/words?rel_syn=${word}`);
+                const data = await response.json();
+                return data.length > 0 ? data[0].word : word;
+            } catch (error) {
+                console.error("Erreur de récupération des synonymes", error);
+                return word;
+            }
+        }
+
+        async function replaceText() {
+            const input = document.getElementById("textInput");
+            const words = input.value.split(" ");
+            const newWords = await Promise.all(words.map(getSynonym));
+            input.value = newWords.join(" ");
+        }
+
+        function moveButton(event) {
+            const button = document.getElementById("replaceButton");
+            const laugh = document.getElementById("laughSound");
+            let x = Math.random() * (window.innerWidth - 100);
+            let y = Math.random() * (window.innerHeight - 50);
+            button.style.position = "absolute";
+            button.style.left = `${x}px`;
+            button.style.top = `${y}px`;
+            laugh.play();
+        }
+
+        document.getElementById("replaceButton").addEventListener("click", function() {
+            const imageUrl = "images/cattroll.jpg";  
+            document.getElementById("displayImage").src = imageUrl;
+            document.getElementById("imageContainer").style.display = "block"; 
+        });
+
+        document.getElementById("replaceButton").addEventListener("mouseover", moveButton);
+    </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Snake Piégé</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a1a, #3a1a50);
+            color: white;
+            font-family: 'Bungee', cursive, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        canvas {
+            border: 5px solid #f6ffff;
+            background-color: #222;
+        }
+
+        #score {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
+            padding: 10px 20px;
+            margin: 10px;
+            background: linear-gradient(135deg, #6a0dad, #4b0082);
+            color: white;
+            border: 2px solid #f6ffff;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #f6ffff, #d4d4d4);
+            color: #6a0dad;
+        }
+
+        #gameOverScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            color: #f6ffff;
+            z-index: 1000;
+        }
+
+        #startScreen {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Snake Piégé</h1>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <button id="restartButton" style="display: none;">Restart</button>
+    <div id="gameOverScreen">
+        <div>GAME OVER.... (GIVE UP)</div>
+        <button id="restartButtonGameOver">Restart</button>
+    </div>
+    <div id="startScreen">
+        <div>Press any key to start</div>
+    </div>
+    <audio id="laughSound" src="audio/lose.mp3"></audio>
+    <audio id="loseSound" src="lose.mp3"></audio>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const laughSound = document.getElementById('laughSound');
+        const loseSound = document.getElementById('loseSound');
+        const scoreDisplay = document.getElementById('score');
+        const restartButton = document.getElementById('restartButton');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const restartButtonGameOver = document.getElementById('restartButtonGameOver');
+        const startScreen = document.getElementById('startScreen');
+
+        const gridSize = 20;
+        const canvasSize = canvas.width;
+        const snake = [{ x: canvasSize / 2, y: canvasSize / 2 }];
+        let direction = { x: 0, y: 0 };
+        let apple = getRandomPosition();
+        let obstacles = [];
+        let score = 0;
+        let appleTouchCooldown = false;
+        let gameStarted = false;
+
+        function getRandomPosition() {
+            const x = Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize;
+            const y = Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize;
+            return { x, y };
+        }
+
+        function drawRect(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, gridSize, gridSize);
+        }
+
+        function gameLoop() {
+            if (!gameStarted) return;
+            update();
+            draw();
+            if (Math.random() < 0.1) apple = getRandomPosition();
+            if (Math.random() < 0.02) obstacles.push(getRandomPosition());
+            setTimeout(gameLoop, 100);
+        }
+
+        function update() {
+            const head = { ...snake[0] };
+            head.x += direction.x * gridSize;
+            head.y += direction.y * gridSize;
+
+            if (head.x < 0) head.x = canvasSize - gridSize;
+            if (head.x >= canvasSize) head.x = 0;
+            if (head.y < 0) head.y = canvasSize - gridSize;
+            if (head.y >= canvasSize) head.y = 0;
+
+            if (head.x === apple.x && head.y === apple.y && !appleTouchCooldown) {
+                snake.push({});
+                apple = getRandomPosition();
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+                direction = { x: Math.random() < 0.5 ? 1 : -1, y: Math.random() < 0.5 ? 1 : -1 };
+                appleTouchCooldown = true;
+                setTimeout(() => appleTouchCooldown = false, 10000);
+            }
+
+            snake.pop();
+            snake.unshift(head);
+
+            for (const obstacle of obstacles) {
+                if (head.x === obstacle.x && head.y === obstacle.y) {
+                    laughSound.play();
+                    showGameOverScreen();
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawRect(apple.x, apple.y, 'red');
+            snake.forEach(segment => drawRect(segment.x, segment.y, 'lime'));
+            obstacles.forEach(obstacle => drawRect(obstacle.x, obstacle.y, 'gray'));
+        }
+
+        function showGameOverScreen() {
+            gameOverScreen.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function resetGame() {
+            gameOverScreen.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            snake.splice(0, snake.length, { x: canvasSize / 2, y: canvasSize / 2 });
+            direction = { x: 0, y: 0 };
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            obstacles = [];
+            loseSound.play();
+        }
+
+        function startGame() {
+            gameStarted = true;
+            startScreen.style.display = 'none';
+            gameLoop();
+        }
+
+        restartButton.addEventListener('click', resetGame);
+        restartButtonGameOver.addEventListener('click', resetGame);
+
+        document.addEventListener('keydown', e => {
+            if (!gameStarted) {
+                startGame();
+            }
+
+            const keyMap = {
+                ArrowUp: { x: 0, y: -1 },
+                ArrowDown: { x: 0, y: 1 },
+                ArrowLeft: { x: -1, y: 0 },
+                ArrowRight: { x: 1, y: 0 },
+            };
+            if (keyMap[e.key]) {
+                direction = keyMap[e.key];
+            }
+        });
+
+    </script>
+</body>
+</html>
